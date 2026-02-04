@@ -32,6 +32,9 @@
         <input type="text" id="newItem" placeholder="New item name">
         <button onclick="addItem()">Add Item</button>
 
+        <input type="text" id="deleteId" placeholder="ID to delete">
+        <button onclick="deleteItem()">Delete Item</button>
+
         <div id="itemList"></div>
     </div>
 
@@ -109,6 +112,25 @@
 
             if (error) {
                 alert('Error adding item: ' + error.message)
+            } else {
+                input.value = ''
+                fetchItems()
+            }
+        }
+
+        async function deleteItem() {
+            const input = document.getElementById('deleteId')
+            const id = input.value
+
+            if (!id) return
+
+            const { error } = await _supabase
+                .from('items')
+                .delete()
+                .eq('id', id)
+
+            if (error) {
+                alert('Error deleting item: ' + error.message)
             } else {
                 input.value = ''
                 fetchItems()
