@@ -5,28 +5,83 @@
     <title>My Supabase App</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .item { padding: 10px; border-bottom: 1px solid #ccc; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .hidden { display: none; }
+        .item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        input, button { padding: 10px; margin: 5px 0; }
+        #errorMsg { color: red; }
     </style>
 </head>
 <body>
 
-    <h1>My Items</h1>
-    
-    <input type="text" id="newItem" placeholder="Enter item name">
-    <button onclick="addItem()">Add Item</button>
+    <h1>Supabase Inventory</h1>
 
-    <div id="itemList"></div>
+    <div id="login-section">
+        <h3>Please Log In</h3>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Log In</button>
+        <p id="errorMsg"></p>
+    </div>
+
+    <div id="app-section" class="hidden">
+        <p>Welcome! <button onclick="logout()">Log Out</button></p>
+        
+        <hr>
+        
+        <input type="text" id="newItem" placeholder="New item name">
+        <button onclick="addItem()">Add Item</button>
+
+        <div id="itemList"></div>
+    </div>
 
     <script>
-        // 2. Initialize Supabase
+        // --- CONFIGURATION ---
         const supabaseUrl = 'https://cerluvffmvtkinnrypbw.supabase.co/'
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlcmx1dmZmbXZ0a2lubnJ5cGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc1NjEsImV4cCI6MjA4NTY2MzU2MX0.5DLKrhbWR7At3LjlC0XM1ZjeTEhrpsUlQPP81ekzeEA'
-        // anon public key
+        const _supabase = supabase.createClient(supabaseUrl, supabaseKey)
 
-        const listElement = document.getElementById('itemList')
+        // --- AUTHENTICATION LOGIC ---
+        
+        // 1. Check if user is already logged in when page loads
+        _supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                // User is logged in
+                document.getElementById('login-section').classList.add('hidden')
+                document.getElementById('app-section').classList.remove('hidden')
+                fetchItems() // Load data immediately
+            } else {
+                // User is logged out
+                document.getElementById('login-section').classList.remove('hidden')
+                document.getElementById('app-section').classList.add('hidden')
+            }
+        })
 
-        // 3. Function to Fetch Data
+        async function login() {
+            const email = document.getElementById('email').value
+            const password = document.getElementById('password').value
+            const errorMsg = document.getElementById('errorMsg')
+
+            const { data, error } = await _supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            })
+
+            if (error) {
+                errorMsg.textContent = "Error: " + error.message
+            } else {
+                errorMsg.textContent = ""
+                // The onAuthStateChange listener above will handle the switch to the app view
+            }
+        }
+
+        async function logout() {
+            const { error } = await _supabase.auth.signOut()
+            if (error) console.error('Error logging out:', error)
+        }
+
+        // --- DATABASE LOGIC ---
+
         async function fetchItems() {
             const { data, error } = await _supabase
                 .from('items')
@@ -34,45 +89,42 @@
                 .order('created_at', { ascending: false })
 
             if (error) {
-                console.error('Error fetching:', error)
+                alert('Error loading items: ' + error.message)
             } else {
                 renderList(data)
             }
         }
 
-        // 4. Function to Add Data
         async function addItem() {
             const input = document.getElementById('newItem')
-            const nameValue = input.value
+            const text = input.value
 
-            // Note: RLS might block this if you aren't logged in! 
-            // For a public demo, you might need to turn off RLS or implement login.
+            if (!text) return
+
+            // The client automatically sends the user's Auth Token with this request
             const { data, error } = await _supabase
-                .from('your_table_name')
-                .insert([{ name: nameValue }])
+                .from('items') // <--- CHANGE THIS
+                .insert([{ name: text }])
                 .select()
 
             if (error) {
                 alert('Error adding item: ' + error.message)
             } else {
-                input.value = '' // Clear input
-                fetchItems() // Refresh list
+                input.value = ''
+                fetchItems()
             }
         }
 
-        // Helper to display data
         function renderList(items) {
-            listElement.innerHTML = ''
+            const list = document.getElementById('itemList')
+            list.innerHTML = ''
             items.forEach(item => {
                 const div = document.createElement('div')
                 div.className = 'item'
-                div.textContent = item.name // Display the "name" column
-                listElement.appendChild(div)
+                div.innerHTML = `<span>${item.name}</span>`
+                list.appendChild(div)
             })
         }
-
-        // Load items on page load
-        fetchItems()
     </script>
 </body>
 </html>
