@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Supabase App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .item { padding: 10px; border-bottom: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+    <h1>My Items</h1>
+    
+    <input type="text" id="newItem" placeholder="Enter item name">
+    <button onclick="addItem()">Add Item</button>
+
+    <div id="itemList"></div>
+
+    <script>
+        // 2. Initialize Supabase
+        const supabaseUrl = 'https://cerluvffmvtkinnrypbw.supabase.co/'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlcmx1dmZmbXZ0a2lubnJ5cGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwODc1NjEsImV4cCI6MjA4NTY2MzU2MX0.5DLKrhbWR7At3LjlC0XM1ZjeTEhrpsUlQPP81ekzeEA'
+        // anon public key
+
+        const listElement = document.getElementById('itemList')
+
+        // 3. Function to Fetch Data
+        async function fetchItems() {
+            const { data, error } = await _supabase
+                .from('items')
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                console.error('Error fetching:', error)
+            } else {
+                renderList(data)
+            }
+        }
+
+        // 4. Function to Add Data
+        async function addItem() {
+            const input = document.getElementById('newItem')
+            const nameValue = input.value
+
+            // Note: RLS might block this if you aren't logged in! 
+            // For a public demo, you might need to turn off RLS or implement login.
+            const { data, error } = await _supabase
+                .from('your_table_name')
+                .insert([{ name: nameValue }])
+                .select()
+
+            if (error) {
+                alert('Error adding item: ' + error.message)
+            } else {
+                input.value = '' // Clear input
+                fetchItems() // Refresh list
+            }
+        }
+
+        // Helper to display data
+        function renderList(items) {
+            listElement.innerHTML = ''
+            items.forEach(item => {
+                const div = document.createElement('div')
+                div.className = 'item'
+                div.textContent = item.name // Display the "name" column
+                listElement.appendChild(div)
+            })
+        }
+
+        // Load items on page load
+        fetchItems()
+    </script>
+</body>
+</html>
