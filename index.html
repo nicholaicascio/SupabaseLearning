@@ -131,10 +131,14 @@
 
             if (!text) return
 
+            //Fetch the user's ID
+            const { data: { user } } = await _supabase.auth.getUser()
+
             //The client automatically sends the user's Auth Token with this request
             const { data, error } = await _supabase
                 .from('items')
-                .insert([{ name: text }])
+                //Store item name as well as user ID in the new row
+                .insert([{ name: text, user_id: user.id }])
                 .select()
 
             if (error) {
